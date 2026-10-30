@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Database Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. Validation Blueprint for Week Entity
+    function isValidWeek(data) {
+      return data.id is string 
+        && data.id.size() <= 64 
+        && data.routes is list 
+        && data.routes.size() <= 30;
+    }
+
+    // Validation Blueprint for AppConfigData Entity
+    function isValidSetting(data) {
+      return (data.config is map || data.goals is map || data.logs is list)
+        && data.updatedAt is string;
+    }
+
+    // 4. Matches for Active Collections
+    match /test/connection {
+      allow read: if true;
+    }
+
+    match /weeks/{weekId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(weekId) && isValidWeek(incoming());
+      allow delete: if false;
+    }
+
+    match /settings/{settingId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(settingId) && isValidSetting(incoming());
+      allow delete: if false;
+    }
+  }
+}

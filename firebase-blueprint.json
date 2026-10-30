@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "GoalStat": {
+      "title": "GoalStat",
+      "description": "Meta and actual value of a KPI",
+      "type": "object",
+      "properties": {
+        "meta": { "type": "number" },
+        "real": { "type": "number" }
+      },
+      "required": ["meta", "real"]
+    },
+    "RouteData": {
+      "title": "RouteData",
+      "description": "Weekly tracking data for a specific sales route",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "clients": { "$ref": "GoalStat" },
+        "boxes": { "$ref": "GoalStat" },
+        "collection": { "$ref": "GoalStat" },
+        "divisas": { "type": "number" },
+        "totalClients": { "type": "number" },
+        "visitedClients": { "type": "number" }
+      },
+      "required": ["id", "name", "clients", "boxes", "collection", "divisas", "totalClients", "visitedClients"]
+    },
+    "WeekData": {
+      "title": "WeekData",
+      "description": "Complete sales data for a specific week",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "routes": {
+          "type": "array",
+          "description": "Array of RouteData elements"
+        },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "routes", "updatedAt"]
+    },
+    "AppConfigData": {
+      "title": "AppConfigData",
+      "description": "Configuration data for the application settings document",
+      "type": "object",
+      "properties": {
+        "config": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["config", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/weeks/{weekId}": {
+      "schema": "#/entities/WeekData",
+      "description": "Stores weekly reports of active routes"
+    },
+    "/settings/{settingId}": {
+      "schema": "#/entities/AppConfigData",
+      "description": "Stores application setup configurations"
+    }
+  }
+}

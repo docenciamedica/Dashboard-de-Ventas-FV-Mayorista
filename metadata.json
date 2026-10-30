@@ -1,0 +1,6 @@
+{
+  "name": "FV MEGAMAYORISTA - Dashboard de Ventas",
+  "description": "Dashboard interactivo para el seguimiento de metas y KPIs de ventas semanales para FV MEGAMAYORISTA, con análisis de IA y visualización de datos en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
