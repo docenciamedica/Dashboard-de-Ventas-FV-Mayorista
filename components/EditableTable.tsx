@@ -1,5 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { RouteData, GoalStat } from '../types';
+import { sanitizeNumericInput } from '../services/financialMath';
 import { FileDown, Loader2 } from 'lucide-react';
 
 interface KPI {
@@ -48,8 +49,7 @@ const EditableCellInput: React.FC<EditableCellInputProps> = ({
   };
 
   const commitValue = () => {
-    const parsed = parseFloat(displayValue);
-    const finalVal = isNaN(parsed) ? 0 : parsed;
+    const finalVal = sanitizeNumericInput(displayValue, 0);
     setDisplayValue(finalVal.toString());
     onCommit(finalVal);
   };
@@ -68,7 +68,9 @@ const EditableCellInput: React.FC<EditableCellInputProps> = ({
   return (
     <input 
       ref={inputRef}
-      type="number" 
+      type="number"
+      inputMode="decimal"
+      min="0" 
       value={displayValue}
       onChange={handleChangeInput}
       onBlur={handleBlur}
@@ -79,7 +81,7 @@ const EditableCellInput: React.FC<EditableCellInputProps> = ({
   );
 };
 
-const EditableTable: React.FC<EditableTableProps> = ({ 
+export const EditableTable: React.FC<EditableTableProps> = ({ 
   route, 
   onUpdate, 
   isConsolidated, 
@@ -153,7 +155,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
       
       {isConsolidated && (
         <div className="bg-amber-50/80 border-b border-amber-100 px-2 py-1 text-[9px] sm:text-xs font-bold text-amber-700 uppercase tracking-wide shrink-0">
-          ⚠️ Resultados globales. Selecciona una ruta para editar.
+          âš ï¸ Resultados globales. Selecciona una ruta para editar.
         </div>
       )}
 
@@ -236,7 +238,7 @@ const EditableTable: React.FC<EditableTableProps> = ({
               </td>
             </tr>
 
-            {/* DYNAMIC ADDITIONAL CUSTOM KPIS (Created by admin Verónica) */}
+            {/* DYNAMIC ADDITIONAL CUSTOM KPIS (Created by admin VerÃ³nica) */}
             {customKpiDefinitions.map(k => {
               const kpiVal = route.customKpis?.[k.id] || { meta: 0, real: 0 };
               return (

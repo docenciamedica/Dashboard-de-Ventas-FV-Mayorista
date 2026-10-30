@@ -9,7 +9,8 @@ import {
 } from 'recharts';
 import { BrainCircuit, AlertTriangle, Lightbulb, TrendingUp, Target, Users, CheckCircle2, Banknote, Sparkles, Loader2, RefreshCw, LineChart as LucideLineChart, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { jsPDF } from 'jspdf';
+import { generateRoutePdfReport } from '../services/reportGenerator';
+import { calculateClosingRate, calculatePercentage, getCorporateSemaphoreColor } from '../services/financialMath';
 
 interface KPI {
   id: string;
@@ -38,7 +39,7 @@ interface DashboardViewProps {
   customCharts?: CustomChart[];
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ 
+export const DashboardView: React.FC<DashboardViewProps> = ({ 
   route, 
   onUpdate, 
   selectedWeek, 
@@ -66,402 +67,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const handleExportPDF = () => {
     setIsExporting(true);
     try {
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'letter'
+      const doc = generateRoutePdfReport({
+        route,
+        previousRoute,
+        selectedWeek,
+        hasAiAnalysis: Boolean(aiAnalysis),
       });
-
-      const primaryColor = [46, 134, 193]; // RGBA blue #2E86C1
-      const darkColor = [33, 47, 61];     // deep blue-grey
-      const lightBg = [248, 249, 250];     // off-white
-      const successColor = [39, 174, 96];  // emerald green
-      const warningColor = [241, 196, 15]; // yellow
-      const dangerColor = [231, 76, 60];   // red
-      const borderAccent = [220, 224, 230];
-
-      let y = 15;
-
-      const checkAndAddPage = (requiredHeight: number) => {
-        if (y + requiredHeight > 255) {
-          doc.addPage();
-          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-          doc.rect(15, 15, 185.9, 10, 'F');
-          
-          doc.setTextColor(255, 255, 255);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(9);
-          doc.text('FV MEGAMAYORISTA  |  REPORTE EJECUTIVO CENTRALIZADO (CONTINUACIÓN)', 20, 21.5);
-          
-          y = 35;
-        }
-      };
-
-      // Header branding
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(15, y, 185.9, 11, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('FV MEGAMAYORISTA  |  REPORTE EJECUTIVO CENTRALIZADO', 20, y + 7.5);
-      y += 16;
-
-      // Report metadata block
-      doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
-      doc.rect(15, y, 185.9, 25, 'F');
-      doc.setDrawColor(borderAccent[0], borderAccent[1], borderAccent[2]);
-      doc.rect(15, y, 185.9, 25, 'S');
-
-      doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      const isSplit = route.name.includes(' - ');
-      const seller = isSplit ? route.name.split(' - ')[0] : 'FV MEGAMAYORISTA';
-      const rName = isSplit ? route.name.split(' - ')[1] : route.name;
-
-      doc.text(`Vendedor: ${seller}`, 20, y + 6);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9.5);
-      doc.setTextColor(110, 120, 130);
-      doc.text(`Ruta Comercial: ${rName}`, 20, y + 12);
-      doc.text(`Período Contable: ${formatWeekId(selectedWeek)}`, 20, y + 17);
-      doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString('es-ES')} ${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'})}`, 20, y + 22);
-      
-      // Right side small badge
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2], 0.1);
-      doc.rect(142, y + 4, 52, 17, 'F');
-      doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(142, y + 4, 52, 17, 'S');
-      
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.text('ESTADO DEL SISTEMA', 145, y + 8);
-      doc.setFontSize(9);
-      doc.text('AUDITORÍA DIGITAL', 145, y + 12.5);
-      doc.setFontSize(7.5);
-      doc.setFont('helvetica', 'normal');
-      doc.text(aiAnalysis ? 'ANALIZADO CON IA (GEMINI)' : 'REGLAS GENERALES ACTIVAS', 145, y + 16.5);
-
-      y += 30;
-
-      // I. RESUMEN EJECUTIVO DE DIRECCIÓN
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('I. RESUMEN EJECUTIVO DE DIRECCIÓN', 15, y);
-      y += 4;
-
-      // Executive text box
-      doc.setFillColor(245, 247, 250);
-      doc.rect(15, y, 185.9, 20, 'F');
-      doc.setDrawColor(220, 224, 230);
-      doc.rect(15, y, 185.9, 20, 'S');
-
-      doc.setTextColor(60, 70, 80);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const cleanSummary = `Este informe quincenal estructurado consolida el estatus del desempeño y metas del vendedor seleccionado para reuniones gerenciales. Conforme a las directrices de FV MEGAMAYORISTA, las ganancias se rigen puramente bajo el sistema de comisiones de venta específicas escalonadas (beneficios proporcionales al volumen de transacciones cobrado, sin bonos fijos recurrentes). Adicionalmente, se audita el indicador clave del 1% de efectivo ($ divisas físicas) sobre la cobranza para garantizar la liquidez cambiaria básica de la vertical de negocios.`;
-      const splitSummary = doc.splitTextToSize(cleanSummary, 175);
-      doc.text(splitSummary, 20, y + 5);
-      
-      y += 25;
-
-      // II. CUMPLIMIENTO COMPARATIVO DE OBJETIVOS (CUMPLIMIENTO %)
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('II. CUMPLIMIENTO COMPARATIVO DE OBJETIVOS (CUMPLIMIENTO %)', 15, y);
-      y += 4;
-
-      const pctClients = route.clients.meta > 0 ? Math.round((route.clients.real / route.clients.meta) * 100) : 0;
-      const pctBoxes = route.boxes.meta > 0 ? Math.round((route.boxes.real / route.boxes.meta) * 100) : 0;
-      const pctCollection = route.collection.meta > 0 ? Math.round((route.collection.real / route.collection.meta) * 100) : 0;
-      const cierreReal = route.visitedClients > 0 ? Math.round((route.clients.real / route.visitedClients) * 100) : 0;
-      const carteraReal = route.totalClients > 0 ? Math.round((route.clients.real / route.totalClients) * 100) : 0;
-
-      let prevClientes = 0;
-      let prevCierre = 0;
-      let prevCartera = 0;
-      let prevCajas = 0;
-      let prevCobranza = 0;
-
-      if (previousRoute) {
-        prevClientes = Math.round((previousRoute.clients.real / (previousRoute.clients.meta || 1)) * 100);
-        prevCierre = previousRoute.visitedClients > 0 ? Math.round((previousRoute.clients.real / previousRoute.visitedClients) * 100) : 0;
-        prevCartera = previousRoute.totalClients > 0 ? Math.round((previousRoute.clients.real / previousRoute.totalClients) * 100) : 0;
-        prevCajas = Math.round((previousRoute.boxes.real / (previousRoute.boxes.meta || 1)) * 100);
-        prevCobranza = Math.round((previousRoute.collection.real / (previousRoute.collection.meta || 1)) * 100);
-      }
-
-      const colClients = pctClients < 70 ? dangerColor : (pctClients <= 90 ? warningColor : successColor);
-      const colCierre = cierreReal < 70 ? dangerColor : (cierreReal <= 90 ? warningColor : successColor);
-      const colCartera = carteraReal < 70 ? dangerColor : (carteraReal <= 90 ? warningColor : successColor);
-      const colBoxes = pctBoxes < 70 ? dangerColor : (pctBoxes <= 90 ? warningColor : successColor);
-      const colCollection = pctCollection < 70 ? dangerColor : (pctCollection <= 90 ? warningColor : successColor);
-
-      const drawComparativeKpiCard = (xPos: number, title: string, pctActual: number, pctPrev: number, realVal: string, metaVal: string, graphCol: number[], isWide: boolean = false) => {
-        const w = isWide ? 185.9 : 88;
-        const h = 26;
-
-        // Draw elegant card container
-        doc.setFillColor(248, 250, 252);
-        doc.rect(xPos, y, w, h, 'F');
-        doc.setDrawColor(218, 224, 235);
-        doc.rect(xPos, y, w, h, 'S');
-
-        // Top tag boundary color accent
-        doc.setFillColor(graphCol[0], graphCol[1], graphCol[2]);
-        doc.rect(xPos, y, w, 1.2, 'F');
-
-        // Card Title
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.setTextColor(33, 47, 61);
-        doc.text(title, xPos + 4, y + 4.5);
-
-        // Huge percentage representation (Actual)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.setTextColor(graphCol[0], graphCol[1], graphCol[2]);
-        doc.text(`${pctActual}%`, xPos + 4, y + 11);
-
-        // Target and achieved numeric info text
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.setTextColor(100, 110, 120);
-        doc.text(`Meta: ${metaVal}`, xPos + 4, y + 17);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Real: ${realVal}`, xPos + 4, y + 22);
-
-        // Bars column spacing setup
-        const rightColX = xPos + (isWide ? 90 : 38);
-        const barW = isWide ? 85 : 44;
-
-        // 1. Quincena Actual Progress Bar
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(33, 47, 61);
-        doc.text(`Q. Actual: ${pctActual}%`, rightColX, y + 8.5);
-
-        doc.setFillColor(230, 235, 240);
-        doc.rect(rightColX, y + 10.5, barW, 2, 'F');
-        doc.setFillColor(graphCol[0], graphCol[1], graphCol[2]);
-        doc.rect(rightColX, y + 10.5, Math.min(barW, (pctActual / 100) * barW), 2, 'F');
-
-        // 2. Quincena Previa Comparative Bar
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.setTextColor(100, 110, 120);
-        doc.text(`Q. Previa: ${pctPrev}%`, rightColX, y + 17);
-
-        doc.setFillColor(230, 235, 240);
-        doc.rect(rightColX, y + 19, barW, 2, 'F');
-        doc.setFillColor(71, 85, 105); // slate-600 color for past period comparison
-        doc.rect(rightColX, y + 19, Math.min(barW, (pctPrev / 100) * barW), 2, 'F');
-      };
-
-      // Row 1: Clientes & Cierre Ventas
-      drawComparativeKpiCard(15, 'COBERTURA DE CLIENTES', pctClients, prevClientes, `${route.clients.real} Pts`, `${route.clients.meta} Pts`, colClients, false);
-      drawComparativeKpiCard(112.9, 'EFECTIVIDAD DE CIERRE DE VENTAS', cierreReal, prevCierre, `${route.clients.real} Clientes`, `${route.visitedClients} Visitas`, colCierre, false);
-
-      y += 29;
-
-      // Row 2: Cartera Activa & Volumen de Despacho (Cajas)
-      drawComparativeKpiCard(15, 'PENETRACIÓN DE CARTERA ACTIVA', carteraReal, prevCartera, `${route.clients.real} Clientes`, `${route.totalClients} Total Cartera`, colCartera, false);
-      drawComparativeKpiCard(112.9, 'VOLUMEN DE DESPACHO (CAJAS)', pctBoxes, prevCajas, `${route.boxes.real} Cjs`, `${route.boxes.meta} Cjs`, colBoxes, false);
-
-      y += 29;
-
-      // Row 3: Cobranza de Cartera Activa (Wide Card layout)
-      drawComparativeKpiCard(15, 'COBRANZA DE CARTERA ACTIVA', pctCollection, prevCobranza, `$${new Intl.NumberFormat('en-US').format(route.collection.real)} USD`, `$${new Intl.NumberFormat('en-US').format(route.collection.meta)} USD`, colCollection, true);
-
-      y += 30;
-
-      // Logistics summary box
-      checkAndAddPage(15);
-      doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
-      doc.rect(15, y, 185.9, 12, 'F');
-      doc.setDrawColor(220, 224, 230);
-      doc.rect(15, y, 185.9, 12, 'S');
-
-      const visitedPct = route.visitedClients > 0 ? Math.round((route.clients.real / route.visitedClients) * 100) : 0;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
-      doc.text(`Estructura Logística de Visitas: ${route.clients.real} clientes servidos de ${route.visitedClients} visitados (${visitedPct}% efectividad de cierre)`, 18, y + 7.5);
-
-      y += 18;
-
-      // III. ESTRUCTURA DE LIQUIDEZ POR DETALLE DE DIVISAS
-      checkAndAddPage(40);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('III. ESTRUCTURA DE LIQUIDEZ POR DETALLE DE DIVISAS', 15, y);
-      y += 5;
-
-      doc.setFillColor(lightBg[0], lightBg[1], lightBg[2]);
-      doc.rect(15, y, 185.9, 32, 'F');
-      doc.setDrawColor(borderAccent[0], borderAccent[1], borderAccent[2]);
-      doc.rect(15, y, 185.9, 32, 'S');
-
-      doc.setTextColor(darkColor[0], darkColor[1], darkColor[2]);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CONCEPTO DE ENTRADA DE FLUJO', 20, y + 8);
-      
-      doc.setFont('helvetica', 'normal');
-      const transferVal = Math.max(0, route.collection.real - route.divisas);
-      const divisasRatio = route.collection.real > 0 ? Math.round((route.divisas / route.collection.real) * 100) : 0;
-      const transferRatio = 100 - divisasRatio;
-
-      doc.text(`• Total Liquidado en Facturación:  $${new Intl.NumberFormat('en-US').format(route.collection.real)} USD`, 20, y + 14);
-      doc.text(`• Recaudación Efectivo Divisas ($):   $${new Intl.NumberFormat('en-US').format(route.divisas)} USD   (${divisasRatio}% del Recaudo)`, 20, y + 20);
-      doc.text(`• Transferencia / Conciliación:         $${new Intl.NumberFormat('en-US').format(transferVal)} USD   (${transferRatio}% del Recaudo)`, 20, y + 26);
-
-      // Draw beautiful indicator bar
-      doc.setFillColor(39, 174, 96);
-      doc.rect(130, y + 10, 55, 6, 'F');
-      doc.setFillColor(52, 152, 219);
-      doc.rect(130 + (divisasRatio / 100) * 55, y + 10, 55 - (divisasRatio / 100) * 55, 6, 'F');
-
-      doc.setFontSize(7.5);
-      doc.setTextColor(100, 110, 120);
-      doc.text(`Efectivo: ${divisasRatio}%`, 130, y + 21);
-      doc.text(`Banco: ${transferRatio}%`, 148, y + 21);
-
-      y += 42;
-
-      // IV. CONCILIACIÓN DE DIVISAS Y COMPLIANCE OPERATIVO
-      checkAndAddPage(30);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('IV. CONCILIACIÓN DE DIVISAS Y COMPLIANCE OPERATIVO', 15, y);
-      y += 4;
-
-      doc.setFillColor(255, 255, 255);
-      doc.rect(15, y, 185.9, 22, 'F');
-      doc.setDrawColor(borderAccent[0], borderAccent[1], borderAccent[2]);
-      doc.rect(15, y, 185.9, 22, 'S');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(33, 47, 61);
-      doc.text('AUDITORÍA RESTRICCIÓN DE DIVISAS ($ EFECTIVO) - MÍNIMO INTERNO 1%', 18, y + 5);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.text(`Efectivo ($) Recaudado: $${new Intl.NumberFormat('en-US').format(route.divisas)} USD`, 18, y + 10);
-      doc.text(`Mínimo 1% Requerido:  $${new Intl.NumberFormat('en-US').format(Math.max(0, route.collection.real * 0.01))} USD`, 18, y + 14);
-      doc.text(`Porcentaje Realizado:  ${divisasRatio}% sobre total cobranza`, 18, y + 18);
-
-      // Status indicator badge
-      const hasMetMinCash = divisasRatio >= 1;
-      const badgeCol = hasMetMinCash ? successColor : dangerColor;
-      const badgeText = hasMetMinCash ? 'LIQUIDEZ CUMPLIDA (OK)' : 'ALERTA REQUISITO MÍNIMO';
-
-      doc.setFillColor(badgeCol[0], badgeCol[1], badgeCol[2], 0.1);
-      doc.rect(118, y + 3, 76, 16, 'F');
-      doc.setDrawColor(badgeCol[0], badgeCol[1], badgeCol[2]);
-      doc.rect(118, y + 3, 76, 16, 'S');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
-      doc.setTextColor(badgeCol[0], badgeCol[1], badgeCol[2]);
-      doc.text('ESTADO COMPLIANCE LIQUIDEZ:', 121, y + 7);
-      doc.setFontSize(8.5);
-      doc.text(badgeText, 121, y + 11);
-      doc.setFontSize(6.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(110, 120, 130);
-      doc.text(hasMetMinCash ? 'Suficiente efectivo captado para el soporte comercial.' : 'Compromiso de liquidez requiere min 1% en $.', 121, y + 14.5);
-
-      y += 30;
-
-      // V. RETROALIMENTACIÓN DE "GERENCIA VIRTUAL" ESTRATEGIAS COMERCIALES
-      checkAndAddPage(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('V. RETROALIMENTACIÓN DE "GERENCIA VIRTUAL" ESTRATEGIAS COMERCIALES', 15, y);
-      y += 5;
-
-      const renderAnalysisBox = (title: string, content: string, rColor: number[]) => {
-        checkAndAddPage(25);
-        
-        doc.setFillColor(248, 250, 252);
-        doc.rect(15, y, 185.9, 21, 'F');
-        doc.setDrawColor(226, 232, 240);
-        doc.rect(15, y, 185.9, 21, 'S');
-
-        doc.setFillColor(rColor[0], rColor[1], rColor[2]);
-        doc.rect(15, y, 2.5, 21, 'F');
-
-        doc.setTextColor(rColor[0], rColor[1], rColor[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.text(title, 21, y + 5);
-
-        doc.setTextColor(50, 60, 70);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-
-        const splitText = doc.splitTextToSize(content, 172);
-        doc.text(splitText, 21, y + 10);
-        
-        y += 24;
-      };
-
-      const displayAnalysis = aiAnalysis || analysis;
-      renderAnalysisBox('DIAGNÓSTICO SITUACIONAL OPERATIVO', displayAnalysis.diagnostic, [46, 134, 193]);
-      renderAnalysisBox('PUNTO DE FRICCIÓN / COSTRICCIÓN DE MERCADO', displayAnalysis.painPoint, [231, 76, 60]);
-      renderAnalysisBox('CONSEJO ACTIVO COMERCIAL Y VENTA CRUZADA', displayAnalysis.opportunity, [39, 174, 96]);
-      renderAnalysisBox('ESTRATEGIA FINANCIERA DE MONEDAS', displayAnalysis.cashInsight, [142, 68, 173]);
-
-      // VI. FIRMA DE RESPONSABILIDAD ADMINISTRATIVA
-      checkAndAddPage(50);
-      y += 8;
-      
-      doc.setDrawColor(200, 205, 210);
-      doc.setLineWidth(0.5);
-      doc.line(65, y + 15, 145, y + 15);
-      
-      doc.setFont('helvetica', 'oblique');
-      doc.setFontSize(11);
-      doc.setTextColor(46, 134, 193);
-      doc.text('Verónica Jauregui', 105, y + 10, { align: 'center' });
-      
-      doc.setTextColor(44, 62, 80);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.text('Verónica Jauregui', 105, y + 20, { align: 'center' });
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(110, 120, 130);
-      doc.text('Gerente Administrativo, División Mayorista, FV Grupo Empresarial', 105, y + 24, { align: 'center' });
-      doc.text('Administradora del Sistema', 105, y + 27, { align: 'center' });
-      
-      y += 35;
-
-      // Draw footer info on last page
-      doc.setFontSize(7.5);
-      doc.setTextColor(150, 160, 170);
-      doc.text('CONFIDENCIAL • SISTEMA DE GESTIÓN DE INFORMACIÓN INTEGRAL S.I.G. FV MEGAMAYORISTA • CONTROL INTERNO', 20, 270);
-      doc.text('Generado mecánicamente por el módulo Virtual Executive Advisor. Todos los derechos reservados 2026.', 20, 274);
-
-      doc.save(`FV_Reporte_Ejecutivo_${seller}_${selectedWeek}.pdf`);
+      const cleanWeekId = selectedWeek ? selectedWeek.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Semana';
+      const cleanRouteName = route.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      doc.save(`Reporte_FV_${cleanRouteName}_${cleanWeekId}.pdf`);
     } catch (err) {
       console.error("Fallo al exportar reporte PDF:", err);
     } finally {
       setIsExporting(false);
     }
   };
-
   useEffect(() => {
     // Artificial 400ms delay removed to eliminate interface transition lag
     setIsLoading(false);
@@ -477,41 +97,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   const barData = useMemo(() => {
-    const cierreReal = route.visitedClients > 0 ? Math.round((route.clients.real / route.visitedClients) * 100) : 0;
-    let prevClientes = 0;
+    const cierreReal = calculateClosingRate(route.clients.real, route.visitedClients);
     let prevCierre = 0;
     let prevCajas = 0;
     let prevCobranza = 0;
 
     if (previousRoute) {
-      prevClientes = Math.round((previousRoute.clients.real / (previousRoute.clients.meta || 1)) * 100);
-      prevCierre = previousRoute.visitedClients > 0 ? Math.round((previousRoute.clients.real / previousRoute.visitedClients) * 100) : 0;
-      prevCajas = Math.round((previousRoute.boxes.real / (previousRoute.boxes.meta || 1)) * 100);
-      prevCobranza = Math.round((previousRoute.collection.real / (previousRoute.collection.meta || 1)) * 100);
+      prevCierre = calculateClosingRate(previousRoute.clients.real, previousRoute.visitedClients);
+      prevCajas = calculatePercentage(previousRoute.boxes.real, previousRoute.boxes.meta);
+      prevCobranza = calculatePercentage(previousRoute.collection.real, previousRoute.collection.meta);
     }
 
-    const cReal = Math.round((route.clients.real / (route.clients.meta || 1)) * 100);
-    const bReal = Math.round((route.boxes.real / (route.boxes.meta || 1)) * 100);
-    const colReal = Math.round((route.collection.real / (route.collection.meta || 1)) * 100);
+    const bReal = calculatePercentage(route.boxes.real, route.boxes.meta);
+    const colReal = calculatePercentage(route.collection.real, route.collection.meta);
 
     const getBarColor = (pct: number, absoluteReal: number, absoluteMeta: number) => {
-      if (absoluteMeta > 0 && pct < 45) return '#000000'; // Alerta de bajo cumplimiento (<45%) - Pinta en negro
-      return getSemaphoreColor(absoluteReal, absoluteMeta);
+      return getCorporateSemaphoreColor(pct, absoluteMeta);
     };
 
     return [
-      { 
-        name: 'Clientes', 
-        meta: 100, 
-        real: cReal, 
-        prevReal: prevClientes,
-        absoluteReal: route.clients.real,
-        absoluteMeta: route.clients.meta,
-        prevAbsoluteReal: previousRoute ? previousRoute.clients.real : 0,
-        prevAbsoluteMeta: previousRoute ? previousRoute.clients.meta : 0,
-        isCurrency: false,
-        color: getBarColor(cReal, route.clients.real, route.clients.meta) 
-      },
       { 
         name: 'Cierre Ventas', 
         meta: 100, 
@@ -732,14 +336,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
       const rData = getRouteDataForWeek(weekId);
       
-      const clientPerf = rData.clients.meta > 0 ? Math.round((rData.clients.real / rData.clients.meta) * 100) : 0;
+      const cierrePerf = rData.visitedClients > 0 ? calculateClosingRate(rData.clients.real, rData.visitedClients) : 0;
       const boxesPerf = rData.boxes.meta > 0 ? Math.round((rData.boxes.real / rData.boxes.meta) * 100) : 0;
       const collectionPerf = rData.collection.meta > 0 ? Math.round((rData.collection.real / rData.collection.meta) * 100) : 0;
       
       return {
         weekNum: w,
         name: `Sem. ${w}`,
-        'Cobertura Clientes (%)': hasData ? clientPerf : null,
+        'Cierre de Ventas (%)': hasData ? cierrePerf : null,
         'Cajas Vendidas (%)': hasData ? boxesPerf : null,
         'Cobranza Lograda (%)': hasData ? collectionPerf : null,
       };
@@ -927,7 +531,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50/50 border border-blue-100 text-[10px] font-black uppercase text-blue-600 tracking-wider">
               <span className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]"></span>
-              <span>Clientes</span>
+              <span>Cierre de Ventas</span>
             </div>
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50/50 border border-emerald-100 text-[10px] font-black uppercase text-emerald-600 tracking-wider">
               <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]"></span>
@@ -988,9 +592,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 }}
               />
               <Line 
-                name="Cobertura Clientes"
+                name="Cierre de Ventas"
                 type="monotone" 
-                dataKey="Cobertura Clientes (%)" 
+                dataKey="Cierre de Ventas (%)" 
                 stroke="#3B82F6" 
                 strokeWidth={3.5} 
                 activeDot={{ r: 8 }} 

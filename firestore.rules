@@ -1,14 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Global Safety Net
+    // 1. Red de Seguridad Global por Defecto
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // 2. Database Primitive Helpers
+    // 2. Funciones Primitivas de Validación y Seguridad
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string 
+        && id.size() > 0 
+        && id.size() <= 128 
+        && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function incoming() {
@@ -19,23 +22,27 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // 3. Validation Blueprint for Week Entity
+    // 3. Validación Estricta de Entidad de Jornada Semanal (WeekData)
     function isValidWeek(data) {
       return data.id is string 
         && data.id.size() <= 64 
         && data.routes is list 
-        && data.routes.size() <= 30;
+        && data.routes.size() <= 40
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 40;
     }
 
-    // Validation Blueprint for AppConfigData Entity
+    // 4. Validación Estricta de Configuraciones del Sistema (AppConfigData)
     function isValidSetting(data) {
       return (data.config is map || data.goals is map || data.logs is list)
-        && data.updatedAt is string;
+        && data.updatedAt is string
+        && data.updatedAt.size() <= 40;
     }
 
-    // 4. Matches for Active Collections
+    // 5. Rutas y Colecciones Operativas de FV MEGAMAYORISTA
     match /test/connection {
       allow read: if true;
+      allow write: if false;
     }
 
     match /weeks/{weekId} {

@@ -1,0 +1,50 @@
+@charset "UTF-8";
+
+/* ==========================================================================
+   FV MEGAMAYORISTA - Estilos Globales de la Plataforma
+   ========================================================================== */
+
+:root {
+  --color-primary: #2E86C1;
+  --color-dark: #212F3D;
+  --color-success: #27AE60;
+  --color-warning: #F1C40F;
+  --color-danger: #E74C3C;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Alineación numérica monoespaciada para tablas y dashboards */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar minimalista y no invasiva */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Pestaña activa corporativa */
+.tab-active {
+  border-bottom: 3px solid #2E86C1;
+  color: #2E86C1;
+}
+
+/* Ajustes ergonómicos de botones táctiles móviles (mínimo 44px) */
+@media (max-width: 640px) {
+  button, input, select {
+    min-height: 44px;
+  }
+}

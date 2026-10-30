@@ -1,26 +1,20 @@
 import React, { useState } from 'react';
-import { KeyRound, ShieldAlert, LogIn, Sparkles, UserCheck } from 'lucide-react';
-import { motion } from 'motion/react';
+import { KeyRound, ShieldAlert, LogIn, Sparkles } from 'lucide-react';
+import { authenticateUser, StoredUser, UserSession } from '../services/authService';
 
-interface UserPin {
-  pin: string;
-  name: string;
-  role: 'admin' | 'user';
+export interface AuthScreenProps {
+  onLoginSuccess: (user: UserSession) => void;
+  registeredUsers: StoredUser[];
 }
 
-interface AuthScreenProps {
-  onLoginSuccess: (user: { name: string; role: 'admin' | 'user'; pin: string }) => void;
-  registeredUsers: UserPin[];
-}
-
-const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers }) => {
   const [inputCode, setInputCode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleNumClick = (num: string) => {
     setErrorMsg(null);
-    if (inputCode.length < 8) {
+    if (inputCode.length < 12) {
       setInputCode(prev => prev + num);
     }
   };
@@ -39,41 +33,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
 
     setIsLoading(true);
     setTimeout(() => {
-      // 1. Evaluate Master Administrator Code
-      if (code === '102030fv.') {
-        onLoginSuccess({
-          name: 'Verónica Jauregui',
-          role: 'admin',
-          pin: '102030fv.'
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Evaluate User 4-Digit PINs
-      if (/^\d{4}$/.test(code)) {
-        const foundUser = registeredUsers.find(u => u.pin === code);
-        if (foundUser) {
-          onLoginSuccess({
-            name: foundUser.name,
-            role: foundUser.role,
-            pin: foundUser.pin
-          });
-          setIsLoading(false);
-          return;
-        } else {
-          setErrorMsg('PIN de 4 dígitos inválido o no registrado.');
-          setInputCode('');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Invalid input formats
-      setErrorMsg('Código incorrecto. Intente nuevamente.');
-      setInputCode('');
+      const authResult = authenticateUser(code, registeredUsers);
       setIsLoading(false);
-    }, 600);
+
+      if (authResult.success && authResult.user) {
+        onLoginSuccess(authResult.user);
+      } else {
+        setErrorMsg(authResult.error || 'Código incorrecto. Intente nuevamente.');
+        setInputCode('');
+      }
+    }, 400);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -109,7 +78,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
           <div className="mb-6 text-center">
             <h2 className="text-lg font-bold text-slate-200">Acceso Seguro</h2>
             <p className="text-[#94A3B8] text-xs mt-1">
-              Ingrese el Código Maestro de Admin o su PIN asignado de 4 dígitos
+              Ingrese el Código de Administración o su PIN asignado de 4 dígitos
             </p>
           </div>
 
@@ -146,7 +115,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
                 type="button"
                 onClick={() => handleNumClick(num)}
                 disabled={isLoading}
-                className="py-3 text-lg font-black bg-slate-800/50 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl active:scale-95 transition-all text-center focus:outline-none"
+                className="py-3 text-lg font-black bg-slate-800/50 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl active:scale-95 transition-all text-center focus:outline-none min-h-[44px]"
               >
                 {num}
               </button>
@@ -155,7 +124,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
               type="button"
               onClick={handleClear}
               disabled={isLoading}
-              className="py-3 text-xs font-black bg-slate-950/50 hover:bg-slate-900 text-slate-400 rounded-xl active:scale-95 transition-all focus:outline-none"
+              className="py-3 text-xs font-black bg-slate-950/50 hover:bg-slate-900 text-slate-400 rounded-xl active:scale-95 transition-all focus:outline-none min-h-[44px]"
             >
               LIMPIAR
             </button>
@@ -163,7 +132,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
               type="button"
               onClick={() => handleNumClick('0')}
               disabled={isLoading}
-              className="py-3 text-lg font-black bg-slate-800/50 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl active:scale-95 transition-all text-center focus:outline-none"
+              className="py-3 text-lg font-black bg-slate-800/50 hover:bg-slate-800 text-slate-200 hover:text-white rounded-xl active:scale-95 transition-all text-center focus:outline-none min-h-[44px]"
             >
               0
             </button>
@@ -171,7 +140,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
               type="button"
               onClick={() => handleSubmit()}
               disabled={isLoading}
-              className="py-3 text-xs font-black bg-[#2E86C1] hover:bg-blue-600 text-white rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1 focus:outline-none shadow-lg shadow-blue-500/10"
+              className="py-3 text-xs font-black bg-[#2E86C1] hover:bg-blue-600 text-white rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1 focus:outline-none shadow-lg shadow-blue-500/10 min-h-[44px]"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -192,8 +161,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, registeredUsers
           </div>
 
         </div>
-
-
 
       </div>
     </div>

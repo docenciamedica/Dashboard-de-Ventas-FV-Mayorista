@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+﻿import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, disableNetwork, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -119,5 +119,5 @@ async function testConnection() {
     }
   }
 }
-testConnection();
+testConnection().catch(() => {});
 

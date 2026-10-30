@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import rateLimit from "express-rate-limit";
 
 async function startServer() {
   const app = express();
@@ -10,19 +11,37 @@ async function startServer() {
   // Body parser limit increased to support batch route lists
   app.use(express.json({ limit: '10mb' }));
 
-  // Initialize Gemini Client
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
+  // Limitador de peticiones para proteger cuota de Gemini API
+  const geminiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    limit: 120, // Máximo 120 peticiones por ventana de 15 minutos
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Límite de análisis de IA temporalmente excedido. Intente en unos minutos." }
   });
+  app.use("/api/gemini/", geminiLimiter);
+
+  // Inicialización defensiva de Gemini Client
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  const isKeyValid = apiKey.startsWith("AIzaSy");
+  const ai = isKeyValid
+    ? new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      })
+    : null;
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+    res.json({ 
+      status: "ok", 
+      aiServiceAvailable: Boolean(ai),
+      timestamp: new Date().toISOString()
+    });
   });
 
   // Route Analysis API proxy (migrating client-side analytics to server-side)
@@ -31,6 +50,10 @@ async function startServer() {
       const { routeData, previousRouteData, evolutionData } = req.body;
       if (!routeData) {
         return res.status(400).json({ error: "No route data provided" });
+      }
+
+      if (!ai) {
+        return res.status(503).json({ error: "Servicio de IA no configurado con clave válida AIzaSy." });
       }
 
       const prompt = `
@@ -81,7 +104,7 @@ async function startServer() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -104,7 +127,6 @@ async function startServer() {
 
       res.json(JSON.parse(response.text.trim()));
     } catch (e: any) {
-      // Gracefully handle 503s due to high demand
       if (e?.status === 503 || e?.message?.includes("503") || e?.message?.includes("UNAVAILABLE")) {
          console.warn("Gemini analyze proxy: High demand (503). Falling back to client logic.");
          return res.status(503).json({ error: "High demand" });
@@ -120,6 +142,10 @@ async function startServer() {
       const { routes, selectedWeek } = req.body;
       if (!routes || !Array.isArray(routes)) {
         return res.status(400).json({ error: "Invalid routes data body" });
+      }
+
+      if (!ai) {
+        return res.status(503).json({ error: "Servicio de IA no disponible para validación." });
       }
 
       const prompt = `
@@ -141,13 +167,13 @@ async function startServer() {
         Debes responder única y estrictamente un objeto JSON. NO uses markdown, ni bloques de código de triple acento grave (\`\`\`), ni explicaciones fuera del JSON.
         El esquema del JSON debe ser el siguiente:
         {
-          "hasInconsistencies": true, // Pon true si encuentras algún error o desbalance sospechoso. De lo contrario, pon false.
+          "hasInconsistencies": true,
           "warnings": [
             {
-              "type": "error", // Usa "error" si es imposible (ej: divisas > cobranza), o "warning" si es inusual comercialmente (ej: 400 cajas vendidas pero $10 de cobranza)
+              "type": "error",
               "routeId": "ID_DE_LA_RUTA_NIVEL_COMPONENTE",
               "routeName": "Nombre del Vendedor de la Ruta",
-              "field": "boxes", // Puede ser "boxes", "collection", "clients", "divisas", o "general"
+              "field": "boxes",
               "message": "Mensaje en español claro, profesional y empático para el operador.",
               "recommendation": "Sugerencia amable de qué número revisar o corregir antes de dar por guardado."
             }
@@ -158,7 +184,7 @@ async function startServer() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -193,7 +219,6 @@ async function startServer() {
 
       res.json(JSON.parse(response.text.trim()));
     } catch (e: any) {
-      // Gracefully handle 503s due to high demand without crashing the logs
       if (e?.status === 503 || e?.message?.includes("503") || e?.message?.includes("UNAVAILABLE")) {
          console.warn("Gemini validation proxy: High demand (503). Falling back to client logic.");
          return res.status(503).json({ error: "High demand" });
@@ -203,7 +228,7 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
+  // Middleware de Vite o estáticos según entorno
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: false },
@@ -213,8 +238,12 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    // Enrutador SPA compatible universalmente con Express 5
+    app.use((req, res, next) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        return res.sendFile(path.join(distPath, 'index.html'));
+      }
+      next();
     });
   }
 
@@ -223,4 +252,8 @@ async function startServer() {
   });
 }
 
-startServer();
+// Inicialización asíncrona blindada con captura defensiva de errores
+startServer().catch((err) => {
+  console.error("[FATAL] Fallo al inicializar el servidor Express:", err);
+  process.exit(1);
+});

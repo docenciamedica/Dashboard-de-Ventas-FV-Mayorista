@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+﻿import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RouteData, GoalStat } from './types';
 import DashboardView from './components/DashboardView';
 import AuthScreen from './components/AuthScreen';
@@ -354,7 +354,7 @@ const getMonthFromWeek = (weekId: string): { name: string; index: number } => {
 
 // --- CORE APP COMPONENT ---
 
-const App: React.FC = () => {
+export const App: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState<string>(() => getCurrentWeekIdFor2026());
   const [selectedSeller, setSelectedSeller] = useState<string>('all');
 

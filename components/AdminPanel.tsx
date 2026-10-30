@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { RouteData, GoalStat } from '../types';
+import { verifyAdminPin } from '../services/authService';
 import { 
   PlusCircle, Trash2, Edit3, Award, Users, TableProperties, LineChart, Hash, 
   MapPin, UserCheck, Shield, Sparkles, TrendingUp, Check, RefreshCw, ArrowUp, ArrowDown,
@@ -51,7 +52,7 @@ interface AdminPanelProps {
   addAuditLog?: (action: string, description: string) => void;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ 
+export const AdminPanel: React.FC<AdminPanelProps> = ({ 
   appConfig, 
   onUpdateConfig, 
   onRefreshAllData,
@@ -75,7 +76,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const [kpiUnit, setKpiUnit] = useState('');
   const [kpiDesc, setKpiDesc] = useState('');
 
-  // --- State for KPI Creation (Gráficos Tab - Access Rápido) ---
+  // --- State for KPI Creation (GrÃ¡ficos Tab - Access RÃ¡pido) ---
   const [chartKpiLabel, setChartKpiLabel] = useState('');
   const [chartKpiUnit, setChartKpiUnit] = useState('');
   const [chartKpiDesc, setChartKpiDesc] = useState('');
@@ -107,7 +108,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     { value: '#10B981', name: 'Esmeralda Real' },
     { value: '#8B5CF6', name: 'Violeta Immersive' },
     { value: '#EC4899', name: 'Rosa Vibrante' },
-    { value: '#F59E0B', name: 'Ámbar Cálido' },
+    { value: '#F59E0B', name: 'Ãmbar CÃ¡lido' },
     { value: '#06B6D4', name: 'Cian Profundo' },
     { value: '#EF4444', name: 'Rojo Alerta' },
     { value: '#64748B', name: 'Pizarra' }
@@ -134,14 +135,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       return;
     }
 
-    const isValid = adminPinInput === '102030fv.';
+    const isValid = verifyAdminPin(adminPinInput);
     
     if (isValid) {
-      const actorName = 'Verónica Jauregui (Master Admin)';
+      const actorName = 'VerÃ³nica Jauregui (Master Admin)';
 
       if (pendingAction) {
         if (addAuditLog) {
-          addAuditLog('Acción Administrativa', `${actorName} autorizó: ${pendingAction.message}`);
+          addAuditLog('AcciÃ³n Administrativa', `${actorName} autorizÃ³: ${pendingAction.message}`);
         }
         pendingAction.onConfirm();
       }
@@ -161,7 +162,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     
     // Check duplication
     if (appConfig.kpis.some(k => k.id === cleanId)) {
-      showNotification('⚠️ Ya existe un KPI con un ID similar o idéntico.');
+      showNotification('âš ï¸ Ya existe un KPI con un ID similar o idÃ©ntico.');
       return;
     }
 
@@ -170,7 +171,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         id: cleanId,
         label: kpiLabel,
         unit: kpiUnit || 'U',
-        description: kpiDesc || `Medición de ${kpiLabel}`
+        description: kpiDesc || `MediciÃ³n de ${kpiLabel}`
       };
 
       const updatedConfig = {
@@ -181,7 +182,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setKpiLabel('');
       setKpiUnit('');
       setKpiDesc('');
-      showNotification(`✅ KPI "${newKpi.label}" agregado exitosamente.`);
+      showNotification(`âœ… KPI "${newKpi.label}" agregado exitosamente.`);
     }, `Agregar nuevo KPI estructural "${kpiLabel}"`);
   };
 
@@ -195,11 +196,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         customCharts: appConfig.customCharts.filter(c => c.kpiId !== id)
       };
       onUpdateConfig(updatedConfig);
-      showNotification(`🗑️ KPI "${kpiLabelText}" eliminado exitosamente.`);
+      showNotification(`ðŸ—‘ï¸ KPI "${kpiLabelText}" eliminado exitosamente.`);
     }, `Eliminar permanentemente el KPI "${kpiLabelText}"`);
   };
 
-  // --- Fast/Manual KPI Creation from Gráficos Tab ---
+  // --- Fast/Manual KPI Creation from GrÃ¡ficos Tab ---
   const handleAddKpiFromChartsTab = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chartKpiLabel) return;
@@ -207,7 +208,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
     // Check duplication
     if (appConfig.kpis.some(k => k.id === cleanId)) {
-      showNotification('⚠️ Ya existe un KPI con un ID similar.');
+      showNotification('âš ï¸ Ya existe un KPI con un ID similar.');
       return;
     }
 
@@ -216,7 +217,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         id: cleanId,
         label: chartKpiLabel,
         unit: chartKpiUnit || 'U',
-        description: chartKpiDesc || `Medición de ${chartKpiLabel}`
+        description: chartKpiDesc || `MediciÃ³n de ${chartKpiLabel}`
       };
 
       const updatedConfig = {
@@ -227,15 +228,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setChartKpiLabel('');
       setChartKpiUnit('');
       setChartKpiDesc('');
-      showNotification(`✅ KPI "${newKpi.label}" agregado exitosamente desde la pestaña de Gráficos.`);
-    }, `Agregar KPI manual "${chartKpiLabel}" desde sección de gráficos`);
+      showNotification(`âœ… KPI "${newKpi.label}" agregado exitosamente desde la pestaÃ±a de GrÃ¡ficos.`);
+    }, `Agregar KPI manual "${chartKpiLabel}" desde secciÃ³n de grÃ¡ficos`);
   };
 
   // --- Routes CRUD functions ---
   const handleAddRoute = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSellerName || !newSubRouteName) {
-      showNotification('⚠️ Nombre de Vendedor y Sub-Ruta requeridos.');
+      showNotification('âš ï¸ Nombre de Vendedor y Sub-Ruta requeridos.');
       return;
     }
 
@@ -243,7 +244,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     const cleanId = newRouteId || combinedName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "-");
 
     if (appConfig.routesTemplate.some(r => r.id === cleanId)) {
-      showNotification('⚠️ Ya existe una ruta con este ID o Nombre.');
+      showNotification('âš ï¸ Ya existe una ruta con este ID o Nombre.');
       return;
     }
 
@@ -267,7 +268,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setNewRouteId('');
       setNewSellerName('');
       setNewSubRouteName('');
-      showNotification(`✅ Ruta "${newRoute.name}" creada exitosamente.`);
+      showNotification(`âœ… Ruta "${newRoute.name}" creada exitosamente.`);
     }, `Crear nueva ruta y vendedor: "${combinedName}"`);
   };
 
@@ -278,7 +279,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleSaveRouteName = (id: string) => {
     if (!editingRouteName.trim()) {
-      showNotification('🚫 El nombre no puede estar vacío');
+      showNotification('ðŸš« El nombre no puede estar vacÃ­o');
       return;
     }
     const routeName = appConfig.routesTemplate.find(r => r.id === id)?.name || id;
@@ -293,7 +294,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       };
       onUpdateConfig(updatedConfig);
       setEditingRouteId(null);
-      showNotification(`✅ Ruta renombrada a "${editingRouteName}" exitosamente.`);
+      showNotification(`âœ… Ruta renombrada a "${editingRouteName}" exitosamente.`);
     }, `Renombrar ruta de venta de "${routeName}" a "${editingRouteName}"`);
   };
 
@@ -304,7 +305,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const handleDeleteRoute = (id: string) => {
     if (appConfig.routesTemplate.length <= 1) {
-      showNotification('🚫 Debe quedar al menos una ruta en el sistema.');
+      showNotification('ðŸš« Debe quedar al menos una ruta en el sistema.');
       return;
     }
     const routeName = appConfig.routesTemplate.find(r => r.id === id)?.name || id;
@@ -315,7 +316,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         routesTemplate: appConfig.routesTemplate.filter(r => r.id !== id)
       };
       onUpdateConfig(updatedConfig);
-      showNotification(`🗑️ Ruta "${routeName}" eliminada exitosamente.`);
+      showNotification(`ðŸ—‘ï¸ Ruta "${routeName}" eliminada exitosamente.`);
     }, `Eliminar permanentemente la ruta de venta "${routeName}"`);
   };
 
@@ -332,7 +333,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         ...appConfig,
         routesTemplate: updatedList
       });
-      showNotification('✅ Orden de ruta subido con éxito.');
+      showNotification('âœ… Orden de ruta subido con Ã©xito.');
     }, `Reordenar y desplazar hacia arriba la ruta "${routeName}"`);
   };
 
@@ -349,7 +350,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         ...appConfig,
         routesTemplate: updatedList
       });
-      showNotification('✅ Orden de ruta bajado con éxito.');
+      showNotification('âœ… Orden de ruta bajado con Ã©xito.');
     }, `Reordenar y desplazar hacia abajo la ruta "${routeName}"`);
   };
 
@@ -357,17 +358,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName || !newUserPin) {
-      showNotification('⚠️ Nombre y PIN requeridos.');
+      showNotification('âš ï¸ Nombre y PIN requeridos.');
       return;
     }
     if (!/^\d{4}$/.test(newUserPin)) {
-      showNotification('⚠️ El PIN de acceso debe ser de exactamente 4 dígitos numéricos.');
+      showNotification('âš ï¸ El PIN de acceso debe ser de exactamente 4 dÃ­gitos numÃ©ricos.');
       return;
     }
     if (newUserPin === '1111' && appConfig.users.some(u => u.pin === '1111') && newUserName === 'Demo') {
       // Allow re-adding or overwrite
     } else if (appConfig.users.some(u => u.pin === newUserPin)) {
-      showNotification('⚠️ Este PIN ya está siendo utilizado por otro operador.');
+      showNotification('âš ï¸ Este PIN ya estÃ¡ siendo utilizado por otro operador.');
       return;
     }
 
@@ -388,7 +389,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       onUpdateConfig(updatedConfig);
       setNewUserName('');
       setNewUserPin('');
-      showNotification(`✅ Operador "${newUser.name}" registrado con PIN ${newUser.pin}.`);
+      showNotification(`âœ… Operador "${newUser.name}" registrado con PIN ${newUser.pin}.`);
     }, `Habilitar operador de ventas "${newUserName}" con PIN ${newUserPin}`);
   };
 
@@ -400,7 +401,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         users: appConfig.users.filter(u => u.pin !== pin)
       };
       onUpdateConfig(updatedConfig);
-      showNotification(`🗑️ Acceso al operador "${userName}" revocado.`);
+      showNotification(`ðŸ—‘ï¸ Acceso al operador "${userName}" revocado.`);
     }, `Eliminar operador "${userName}" (PIN de acceso: ${pin})`);
   };
 
@@ -408,7 +409,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleAddChart = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chartTitle) {
-      showNotification('⚠️ Ingrese un título para el gráfico.');
+      showNotification('âš ï¸ Ingrese un tÃ­tulo para el grÃ¡fico.');
       return;
     }
 
@@ -430,8 +431,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       onUpdateConfig(updatedConfig);
       setChartTitle('');
       setChartColor('#8B5CF6');
-      showNotification(`✅ Gráfico personalizado "${newChart.title}" agregado.`);
-    }, `Instanciar nuevo gráfico personalizado "${chartTitle}"`);
+      showNotification(`âœ… GrÃ¡fico personalizado "${newChart.title}" agregado.`);
+    }, `Instanciar nuevo grÃ¡fico personalizado "${chartTitle}"`);
   };
 
   const handleDeleteChart = (id: string) => {
@@ -442,8 +443,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         customCharts: appConfig.customCharts.filter(c => c.id !== id)
       };
       onUpdateConfig(updatedConfig);
-      showNotification(`🗑️ Gráfico "${chartTitleStr}" removido.`);
-    }, `Remover indicador visual de gráfico "${chartTitleStr}"`);
+      showNotification(`ðŸ—‘ï¸ GrÃ¡fico "${chartTitleStr}" removido.`);
+    }, `Remover indicador visual de grÃ¡fico "${chartTitleStr}"`);
   };
 
   return (
@@ -457,13 +458,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
           <div>
             <h2 className="text-lg font-black tracking-wider uppercase flex items-center gap-2">
-              Pestaña Administrativa - Control de Acceso y Estructura
+              PestaÃ±a Administrativa - Control de Acceso y Estructura
               <span className="bg-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-blue-500/30">
-                Verónica Jauregui
+                VerÃ³nica Jauregui
               </span>
             </h2>
             <p className="text-slate-400 text-xs mt-0.5 font-bold uppercase tracking-wider">
-              Control estructural total (KPIs, Rutas, Vendedores, Pines de Seguridad y Representaciones de Gráficos)
+              Control estructural total (KPIs, Rutas, Vendedores, Pines de Seguridad y Representaciones de GrÃ¡ficos)
             </p>
           </div>
         </div>
@@ -525,7 +526,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           }`}
         >
           <LineChart className="w-4 h-4" />
-          Gráficos Personalizados
+          GrÃ¡ficos Personalizados
         </button>
 
         <button
@@ -563,7 +564,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               
               <form onSubmit={handleAddRoute} className="flex flex-col gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">ID Único de Ruta (Opcional)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">ID Ãšnico de Ruta (Opcional)</label>
                   <input
                     type="text"
                     value={newRouteId}
@@ -579,14 +580,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     type="text"
                     value={newSellerName}
                     onChange={(e) => setNewSellerName(e.target.value)}
-                    placeholder="ej. Verónica Jauregui"
+                    placeholder="ej. VerÃ³nica Jauregui"
                     required
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nombre de la Sub-Ruta o Región</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nombre de la Sub-Ruta o RegiÃ³n</label>
                   <input
                     type="text"
                     value={newSubRouteName}
@@ -644,7 +645,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             {/* List and CRUD */}
             <div className="lg:col-span-2">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">
-                Padrón de Sub-Rutas Vigentes ({appConfig.routesTemplate.length})
+                PadrÃ³n de Sub-Rutas Vigentes ({appConfig.routesTemplate.length})
               </h3>
               
               <div className="overflow-x-auto max-h-[420px] scrollbar-thin">
@@ -656,8 +657,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <th className="px-4 py-3 text-center">Clientes</th>
                       <th className="px-4 py-3 text-center">Cajas</th>
                       <th className="px-4 py-3 text-center">Cobranza ($)</th>
-                      <th className="px-4 py-3 text-center">Posición</th>
-                      <th className="px-4 py-3 text-right">Acción</th>
+                      <th className="px-4 py-3 text-center">PosiciÃ³n</th>
+                      <th className="px-4 py-3 text-right">AcciÃ³n</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-bold text-xs text-slate-700">
@@ -687,7 +688,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               onClick={() => handleMoveRouteUp(index)}
                               disabled={index === 0}
                               className={`p-1 rounded-md border transition-all ${index === 0 ? 'text-slate-200 border-slate-100 cursor-not-allowed bg-slate-50/30' : 'text-[#2E86C1] border-blue-200 hover:bg-blue-50 active:scale-95 bg-white'}`}
-                              title="Subir posición (Solicita PIN)"
+                              title="Subir posiciÃ³n (Solicita PIN)"
                             >
                               <ArrowUp className="w-3.5 h-3.5" />
                             </button>
@@ -696,7 +697,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                               onClick={() => handleMoveRouteDown(index)}
                               disabled={index === appConfig.routesTemplate.length - 1}
                               className={`p-1 rounded-md border transition-all ${index === appConfig.routesTemplate.length - 1 ? 'text-slate-200 border-slate-100 cursor-not-allowed bg-slate-50/30' : 'text-[#2E86C1] border-blue-200 hover:bg-blue-50 active:scale-95 bg-white'}`}
-                              title="Bajar posición (Solicita PIN)"
+                              title="Bajar posiciÃ³n (Solicita PIN)"
                             >
                               <ArrowDown className="w-3.5 h-3.5" />
                             </button>
@@ -770,7 +771,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     type="text"
                     value={kpiLabel}
                     onChange={(e) => setKpiLabel(e.target.value)}
-                    placeholder="ej. Nuevos Clientes, Rotación"
+                    placeholder="ej. Nuevos Clientes, RotaciÃ³n"
                     required
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2E86C1]"
                   />
@@ -788,7 +789,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Breve Descripción Informativa</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Breve DescripciÃ³n Informativa</label>
                   <textarea
                     value={kpiDesc}
                     onChange={(e) => setKpiDesc(e.target.value)}
@@ -867,7 +868,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="lg:border-r lg:border-slate-100 lg:pr-8">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-500" />
-                Registrar Operador Estándar
+                Registrar Operador EstÃ¡ndar
               </h3>
               
               <form onSubmit={handleAddUser} className="flex flex-col gap-4">
@@ -877,14 +878,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                     type="text"
                     value={newUserName}
                     onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="ej. Daniel Martínez"
+                    placeholder="ej. Daniel MartÃ­nez"
                     required
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Código PIN (Exacto 4 Dígitos)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">CÃ³digo PIN (Exacto 4 DÃ­gitos)</label>
                   <input
                     type="text"
                     maxLength={4}
@@ -898,7 +899,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
                 <div className="bg-amber-50 rounded-xl p-3 border border-amber-200/50">
                   <p className="text-[9px] text-amber-800 font-bold uppercase leading-relaxed">
-                    ⚠️ NOTA: Los operadores ingresan con este PIN y solo pueden capturar avances. No pueden alterar metas mensuales o modificar sub-rutas.
+                    âš ï¸ NOTA: Los operadores ingresan con este PIN y solo pueden capturar avances. No pueden alterar metas mensuales o modificar sub-rutas.
                   </p>
                 </div>
 
@@ -921,14 +922,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 {/* Admin is hardcoded so we display it nicely */}
                 <div className="p-4 rounded-xl border border-[#2E86C1]/30 bg-blue-50/50 flex items-center justify-between shadow-sm">
                   <div>
-                    <span className="text-xs font-black text-slate-800 block uppercase">Verónica Jauregui</span>
+                    <span className="text-xs font-black text-slate-800 block uppercase">VerÃ³nica Jauregui</span>
                     <span className="text-[9px] font-black uppercase text-[#2E86C1] tracking-widest">Rol: Administrador Maestro</span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-[9px] font-black text-slate-400 uppercase">PIN / Código</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase">PIN / CÃ³digo</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="font-mono text-xs font-black text-slate-700">
-                        {showAdminPin ? '102030fv.' : '•••••••••'}
+                        {showAdminPin ? '102030fv.' : 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'}
                       </span>
                       <button 
                         type="button"
@@ -954,7 +955,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                         <span className="text-[8px] font-black text-slate-300 uppercase block">PIN</span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-sm font-black text-slate-700">
-                            {showUserPins[u.pin] ? u.pin : '••••'}
+                            {showUserPins[u.pin] ? u.pin : 'â€¢â€¢â€¢â€¢'}
                           </span>
                           <button 
                             type="button"
@@ -987,38 +988,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
-        {/* TAB 4: DISEÑO GRAFICOS PERSONALIZADOS */}
+        {/* TAB 4: DISEÃ‘O GRAFICOS PERSONALIZADOS */}
         {activeTab === 'charts' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:border-r lg:border-slate-100 lg:pr-8">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <LineChart className="w-4 h-4 text-purple-600" />
-                Configurar Gráfico Dinámico
+                Configurar GrÃ¡fico DinÃ¡mico
               </h3>
               
               <form onSubmit={handleAddChart} className="flex flex-col gap-4">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Título del Gráfico</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">TÃ­tulo del GrÃ¡fico</label>
                   <input
                     type="text"
                     value={chartTitle}
                     onChange={(e) => setChartTitle(e.target.value)}
-                    placeholder="ej. Evolución Mensual de Volumen"
+                    placeholder="ej. EvoluciÃ³n Mensual de Volumen"
                     required
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Estructura del Gráfico</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Estructura del GrÃ¡fico</label>
                   <select
                     value={chartType}
                     onChange={(e) => setChartType(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold uppercase cursor-pointer"
                   >
-                    <option value="bar">Gráfico de Barras</option>
-                    <option value="line">Gráfico Lineal de Evolución</option>
-                    <option value="area">Gráfico de Área Immersive</option>
+                    <option value="bar">GrÃ¡fico de Barras</option>
+                    <option value="line">GrÃ¡fico Lineal de EvoluciÃ³n</option>
+                    <option value="area">GrÃ¡fico de Ãrea Immersive</option>
                   </select>
                 </div>
 
@@ -1050,7 +1051,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Color del Gráfico (Paleta o Libre)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Color del GrÃ¡fico (Paleta o Libre)</label>
                   <div className="grid grid-cols-4 gap-1.5 mb-2.5">
                     {PRESET_COLORS.map(p => (
                       <button
@@ -1077,7 +1078,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       onChange={(e) => setChartColor(e.target.value)}
                       className="cursor-pointer w-6 h-6 rounded border-0 p-0 overflow-hidden"
                       id="custom-chart-color-picker"
-                      title="Selección de color libre"
+                      title="SelecciÃ³n de color libre"
                     />
                     <label htmlFor="custom-chart-color-picker" className="text-[9px] font-black text-slate-500 uppercase cursor-pointer flex-1">
                       Personalizado: <span className="font-mono bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 ml-1">{chartColor}</span>
@@ -1090,18 +1091,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs font-black uppercase py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-md shadow-purple-500/15"
                 >
                   <TrendingUp className="w-4 h-4" />
-                  Instanciar Gráfico
+                  Instanciar GrÃ¡fico
                 </button>
               </form>
 
-              {/* Manual KPI Creation Card - Dynamic quick access for Gráficos */}
+              {/* Manual KPI Creation Card - Dynamic quick access for GrÃ¡ficos */}
               <div className="border-t border-slate-150 pt-6 mt-6">
                 <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <PlusCircle className="w-4 h-4 text-emerald-600" />
                   Crear Nuevo KPI Manualmente
                 </h4>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4 leading-relaxed">
-                  Agrega nuevos KPIs manuales que estarán listos para ser seleccionados en la configuración del gráfico.
+                  Agrega nuevos KPIs manuales que estarÃ¡n listos para ser seleccionados en la configuraciÃ³n del grÃ¡fico.
                 </p>
 
                 <form onSubmit={handleAddKpiFromChartsTab} className="flex flex-col gap-3">
@@ -1141,11 +1142,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-[9px] font-black text-slate-450 uppercase tracking-widest block mb-1">Descripción corta</label>
+                    <label className="text-[9px] font-black text-slate-450 uppercase tracking-widest block mb-1">DescripciÃ³n corta</label>
                     <textarea
                       value={chartKpiDesc}
                       onChange={(e) => setChartKpiDesc(e.target.value)}
-                      placeholder="Medición rápida para visualizadores de gráficos..."
+                      placeholder="MediciÃ³n rÃ¡pida para visualizadores de grÃ¡ficos..."
                       rows={2}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:bg-white focus:outline-none"
                     />
@@ -1164,14 +1165,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <div className="lg:col-span-2">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider mb-4">
-                Gráficos Dinámicos Habilitados ({appConfig.customCharts.length})
+                GrÃ¡ficos DinÃ¡micos Habilitados ({appConfig.customCharts.length})
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {appConfig.customCharts.length === 0 ? (
                   <div className="col-span-full border border-dashed border-slate-200 rounded-2xl p-8 text-center bg-slate-50">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                      No hay gráficos dinámicos extras creados. Puedes instanciar nuevos a la izquierda y se renderizarán solos al final del panel.
+                      No hay grÃ¡ficos dinÃ¡micos extras creados. Puedes instanciar nuevos a la izquierda y se renderizarÃ¡n solos al final del panel.
                     </p>
                   </div>
                 ) : (
@@ -1211,17 +1212,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         )}
 
-        {/* TAB 5: HISTORIAL DE CAMBIOS & AUDITORÍA */}
+        {/* TAB 5: HISTORIAL DE CAMBIOS & AUDITORÃA */}
         {activeTab === 'history' && (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                   <History className="w-5 h-5 text-[#2E86C1]" />
-                  Historial y Registro de Auditoría
+                  Historial y Registro de AuditorÃ­a
                 </h3>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">
-                  Bitácora en tiempo real de cambios de datos, modificaciones de KPIs, altas y bajas de operadores.
+                  BitÃ¡cora en tiempo real de cambios de datos, modificaciones de KPIs, altas y bajas de operadores.
                 </p>
               </div>
             </div>
@@ -1240,10 +1241,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="p-12 text-center flex flex-col items-center justify-center">
                   <History className="w-10 h-10 text-slate-350 stroke-1 mb-3 animate-pulse" />
                   <p className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                    No se han registrado modificaciones estructurales o de datos aún.
+                    No se han registrado modificaciones estructurales o de datos aÃºn.
                   </p>
                   <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
-                    Cada vez que un operador o Verónica efectúen cambios o borren datos se guardará aquí.
+                    Cada vez que un operador o VerÃ³nica efectÃºen cambios o borren datos se guardarÃ¡ aquÃ­.
                   </p>
                 </div>
               ) : (
@@ -1253,8 +1254,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                       <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-wider">
                         <th className="px-6 py-4 w-1/4">Fecha y Hora</th>
                         <th className="px-6 py-4 w-1/4">Operador / Administrador</th>
-                        <th className="px-6 py-4 w-1/5">Categoría</th>
-                        <th className="px-6 py-4">Descripción del Cambio</th>
+                        <th className="px-6 py-4 w-1/5">CategorÃ­a</th>
+                        <th className="px-6 py-4">DescripciÃ³n del Cambio</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-150 text-slate-700 text-xs font-bold">
@@ -1309,12 +1310,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
               <div>
                 <h3 className="text-xs font-black uppercase tracking-wider text-white">Seguridad de Administrador</h3>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Autorización Requerida</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">AutorizaciÃ³n Requerida</p>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-300 leading-relaxed font-semibold mb-5 p-3 rounded-lg bg-slate-950/50 border border-slate-800/40">
-              Se está intentando realizar una operación estructural: <br />
+              Se estÃ¡ intentando realizar una operaciÃ³n estructural: <br />
               <span className="text-amber-400 font-extrabold uppercase text-[10px] mt-2 inline-block leading-normal">
                 "{pendingAction.message}"
               </span>
@@ -1336,7 +1337,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 />
                 {pinError && (
                   <p className="text-[9px] text-rose-500 font-bold uppercase mt-2 text-center">
-                    ⚠️ {pinError}
+                    âš ï¸ {pinError}
                   </p>
                 )}
               </div>
