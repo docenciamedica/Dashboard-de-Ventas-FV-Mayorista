@@ -91,16 +91,15 @@ export function calculateCashRatio(divisas: number, collectionReal: number): num
 
 /**
  * Returns corporate semaphore color for KPI achievement:
- * Red: < 70%
- * Yellow: 70% - 90%
- * Green: > 90%
- * Black: Critical warning (< 45% when meta > 0)
+ * - Menor de 50% (< 50%): Negro (#000000) - Alerta Crítica
+ * - De 50% a 80%: Amarillo (#F1C40F) - En Progreso / Alerta Moderada
+ * - De 81% a 100% (o superior): Verde (#27AE60) - Óptimo / Éxito
  */
 export function getCorporateSemaphoreColor(pct: number, meta: number = 100): string {
-  if (meta > 0 && pct < 45) return '#000000'; // Black critical indicator
-  if (pct < 70) return '#E74C3C'; // Red
-  if (pct <= 90) return '#F1C40F'; // Yellow
-  return '#27AE60'; // Emerald Green
+  if (meta <= 0) return '#27AE60';
+  if (pct < 50) return '#000000'; // Menor de 50% negro
+  if (pct <= 80) return '#F1C40F'; // De 50 a 80% amarillo
+  return '#27AE60'; // De 81 al 100% verde
 }
 
 /**

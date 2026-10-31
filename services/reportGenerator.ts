@@ -13,9 +13,9 @@ const PRIMARY_COLOR: [number, number, number] = [46, 134, 193]; // #2E86C1
 const DARK_COLOR: [number, number, number] = [33, 47, 61];       // #212F3D
 const LIGHT_BG: [number, number, number] = [248, 250, 252];
 const BORDER_COLOR: [number, number, number] = [226, 232, 240];
-const SUCCESS_COLOR: [number, number, number] = [39, 174, 96];   // #27AE60
-const WARNING_COLOR: [number, number, number] = [241, 196, 15];  // #F1C40F
-const DANGER_COLOR: [number, number, number] = [231, 76, 60];    // #E74C3C
+const SUCCESS_COLOR: [number, number, number] = [39, 174, 96];   // #27AE60 (81-100% verde)
+const WARNING_COLOR: [number, number, number] = [241, 196, 15];  // #F1C40F (50-80% amarillo)
+const CRITICAL_COLOR: [number, number, number] = [0, 0, 0];       // #000000 (<50% negro)
 
 function formatWeekLabel(wkId?: string): string {
   if (!wkId) return 'Semana No Especificada';
@@ -149,9 +149,9 @@ export function generateRoutePdfReport({
   }
 
   const getColor = (pct: number): [number, number, number] => {
-    if (pct < 70) return DANGER_COLOR;
-    if (pct <= 90) return WARNING_COLOR;
-    return SUCCESS_COLOR;
+    if (pct < 50) return CRITICAL_COLOR; // Menor de 50% negro
+    if (pct <= 80) return WARNING_COLOR; // De 50 a 80% amarillo
+    return SUCCESS_COLOR; // De 81 al 100% verde
   };
 
   const drawKpiCard = (
@@ -197,8 +197,8 @@ export function generateRoutePdfReport({
     doc.text(`Q. Anterior: ${pctBefore}%`, x + width - 32, cardY + 12.5);
 
     const diff = pctNow - pctBefore;
-    const diffColor = diff >= 0 ? SUCCESS_COLOR : DANGER_COLOR;
-    doc.setTextColor(...diffColor);
+    const diffColor = diff >= 0 ? SUCCESS_COLOR : CRITICAL_COLOR;
+    doc.setTextColor(diffColor[0], diffColor[1], diffColor[2]);
     doc.text(`${diff >= 0 ? '+' : ''}${diff}%`, x + width - 32, cardY + 18);
   };
 
@@ -275,8 +275,9 @@ export function generateRoutePdfReport({
   doc.text(`• Divisas en Efectivo Captadas: ${formatCurrency(route.divisas)} (${divisasPct}% de liquidez física en USD).`, 19, y + 15.5);
 
   const cashCompliant = Number(divisasPct) >= 1.0;
+  const cashColor = cashCompliant ? SUCCESS_COLOR : CRITICAL_COLOR;
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...(cashCompliant ? SUCCESS_COLOR : DANGER_COLOR));
+  doc.setTextColor(cashColor[0], cashColor[1], cashColor[2]);
   doc.text(
     cashCompliant ? '✓ Cumple con el mínimo administrativo del 1% en divisas.' : '⚠ Alerta: Porcentaje de efectivo por debajo de la norma mínima (1%).',
     19,

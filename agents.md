@@ -5,11 +5,10 @@
 - **Colores Corporativos**:
   - Color Primario Comercial: `#2E86C1` (Azul FV Comercial).
   - Color Secundario Ejecutivo: `#212F3D` (Gris Oscuro / Pizarra Profundo).
-  - Acentos de Cumplimiento:
-    - Verde Éxito (>90%): `#27AE60` / `#10B981`.
-    - Amarillo Alerta (70-90%): `#F1C40F` / `#F59E0B`.
-    - Rojo Peligro (<70%): `#E74C3C` / `#EF4444`.
-    - Negro Crítico (<45%): `#000000`.
+  - Acentos de Cumplimiento (Semáforo Oficial Actualizado):
+    - Verde Éxito (81% a 100% o superior): `#27AE60` / `#10B981`.
+    - Amarillo Alerta / En Progreso (50% a 80%): `#F1C40F` / `#F59E0B`.
+    - Negro Crítico (Menor de 50%): `#000000`.
 - **Copyright Oficial**: `© 2026 FV MEGAMAYORISTA - Todos los derechos reservados.`
 - **Tipografía**: Inter / Sans-serif de alta legibilidad con alineación numérica tabular (`tabular-nums`).
 

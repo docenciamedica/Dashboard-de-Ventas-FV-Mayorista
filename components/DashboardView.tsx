@@ -88,12 +88,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, [route.id, selectedWeek]);
 
   // Protocolo de Semáforo: Rojo < 70%, Amarillo 71-90%, Verde > 91%
+  // Protocolo de Semáforo Oficial: Menor de 50% Negro, 50-80% Amarillo, 81-100% Verde
   const getSemaphoreColor = (real: number, meta: number) => {
     if (meta <= 0) return '#27AE60';
     const percent = (real / meta) * 100;
-    if (percent < 70) return '#E74C3C'; // Rojo
-    if (percent <= 90) return '#F1C40F'; // Amarillo
-    return '#27AE60'; // Verde
+    if (percent < 50) return '#000000'; // Menor de 50% negro
+    if (percent <= 80) return '#F1C40F'; // De 50 a 80% amarillo
+    return '#27AE60'; // De 81 al 100% verde
   };
 
   const barData = useMemo(() => {
@@ -391,7 +392,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex flex-col items-start gap-1">
                {barData.some(b => b.color === '#000000') && (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-900 border border-black text-white rounded shadow-sm animate-pulse z-10 w-fit">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-rose-400">⚠️ Alerta de Indicador en Negro</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-rose-400">⚠️ Alerta de Indicador en Negro (&lt;50%)</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
