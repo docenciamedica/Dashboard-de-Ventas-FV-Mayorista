@@ -408,65 +408,72 @@ export function generateRoutePdfReport({
   doc.setTextColor(...PRIMARY_COLOR);
   doc.text('V. RETROALIMENTACIÓN DE "GERENCIA VIRTUAL" ESTRATEGIAS COMERCIALES', 15, 63.5);
 
-  // Obtenemos análisis situacional con fallback determinista financiero
-  const finalAnalysis = analysis || calculateSituationalAnalysis(route);
+  // Obtenemos análisis situacional con fallback determinista financiero enfocado por zona
+  const finalAnalysis = analysis || calculateSituationalAnalysis(route, previousRoute);
+
+  let currentBoxY = 66;
 
   const renderAnalysisBox = (
-    boxY: number,
     title: string,
     content: string,
     rColor: [number, number, number]
   ) => {
-    const boxH = 20;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.6);
+    const splitText = doc.splitTextToSize(content, 174);
+    const textHeight = splitText.length * 3.6;
+    const boxH = Math.max(18, 7.5 + textHeight);
+
     doc.setFillColor(248, 250, 252);
-    doc.rect(15, boxY, 185.9, boxH, 'F');
+    doc.rect(15, currentBoxY, 185.9, boxH, 'F');
     doc.setDrawColor(...BORDER_ACCENT);
-    doc.rect(15, boxY, 185.9, boxH, 'S');
+    doc.rect(15, currentBoxY, 185.9, boxH, 'S');
 
     // Barra vertical de acento color
     doc.setFillColor(...rColor);
-    doc.rect(15, boxY, 2.5, boxH, 'F');
+    doc.rect(15, currentBoxY, 2.5, boxH, 'F');
 
     // Título
     doc.setTextColor(...rColor);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.text(title, 21, boxY + 5);
+    doc.setFontSize(8);
+    doc.text(title, 20.5, currentBoxY + 5);
 
     // Contenido
     doc.setTextColor(50, 60, 70);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    const splitText = doc.splitTextToSize(content, 172);
-    doc.text(splitText, 21, boxY + 9.5);
+    doc.setFontSize(7.6);
+    doc.text(splitText, 20.5, currentBoxY + 9.5);
+
+    currentBoxY += boxH + 3;
   };
 
-  renderAnalysisBox(68, 'DIAGNÓSTICO SITUACIONAL OPERATIVO', finalAnalysis.diagnostic, [46, 134, 193]);
-  renderAnalysisBox(91, 'PUNTO DE FRICCIÓN / COSTRICCIÓN DE MERCADO', finalAnalysis.painPoint, [231, 76, 60]);
-  renderAnalysisBox(114, 'CONSEJO ACTIVO COMERCIAL Y VENTA CRUZADA', finalAnalysis.opportunity, [39, 174, 96]);
-  renderAnalysisBox(137, 'ESTRATEGIA FINANCIERA DE MONEDAS', finalAnalysis.cashInsight, [142, 68, 173]);
+  renderAnalysisBox('DIAGNÓSTICO SITUACIONAL OPERATIVO', finalAnalysis.diagnostic, [46, 134, 193]);
+  renderAnalysisBox('PUNTO DE FRICCIÓN / COSTRICCIÓN DE MERCADO', finalAnalysis.painPoint, [231, 76, 60]);
+  renderAnalysisBox('CONSEJO ACTIVO COMERCIAL Y VENTA CRUZADA', finalAnalysis.opportunity, [39, 174, 96]);
+  renderAnalysisBox('ESTRATEGIA FINANCIERA DE MONEDAS', finalAnalysis.cashInsight, [142, 68, 173]);
 
   // 4. VI. FIRMA DE RESPONSABILIDAD ADMINISTRATIVA
-  const signBaseY = 166;
+  const signBaseY = Math.min(235, Math.max(currentBoxY + 4, 170));
   doc.setDrawColor(200, 205, 210);
   doc.setLineWidth(0.5);
-  doc.line(65, signBaseY + 15, 145, signBaseY + 15);
+  doc.line(65, signBaseY + 14, 145, signBaseY + 14);
 
   doc.setFont('helvetica', 'oblique');
   doc.setFontSize(11);
   doc.setTextColor(46, 134, 193);
-  doc.text('Verónica Jauregui', 105, signBaseY + 10, { align: 'center' });
+  doc.text('Verónica Jauregui', 105, signBaseY + 9, { align: 'center' });
 
   doc.setTextColor(44, 62, 80);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('Verónica Jauregui', 105, signBaseY + 20, { align: 'center' });
+  doc.text('Verónica Jauregui', 105, signBaseY + 19, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(110, 120, 130);
-  doc.text('Gerente Administrativo, División Mayorista, FV Grupo Empresarial', 105, signBaseY + 24, { align: 'center' });
-  doc.text('Administradora del Sistema', 105, signBaseY + 27, { align: 'center' });
+  doc.text('Gerente Administrativo, División Mayorista, FV Grupo Empresarial', 105, signBaseY + 23, { align: 'center' });
+  doc.text('Administradora del Sistema', 105, signBaseY + 26.5, { align: 'center' });
 
   // ==========================================
   // PIE DE PÁGINA EN TODAS LAS HOJAS

@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import rateLimit from "express-rate-limit";
+import { getZoneProfile } from "./services/territorialIntelligence";
 
 async function startServer() {
   const app = express();
@@ -56,17 +57,48 @@ async function startServer() {
         return res.status(503).json({ error: "Servicio de IA no configurado con clave válida AIzaSy." });
       }
 
+      const zoneProfile = getZoneProfile(routeData.name || "");
+      const isSplit = (routeData.name || "").includes(" - ");
+      const seller = isSplit ? routeData.name.split(" - ")[0] : "Promotor FV";
+
+      const attended = routeData.clients?.real ?? 0;
+      const visited = routeData.visitedClients > 0 ? routeData.visitedClients : (routeData.clients?.meta ?? 1);
+      const closingRate = Math.round((attended / visited) * 100);
+      const boxesReal = routeData.boxes?.real ?? 0;
+      const boxesMeta = routeData.boxes?.meta ?? 1;
+      const boxesRate = Math.round((boxesReal / boxesMeta) * 100);
+      const collReal = routeData.collection?.real ?? 0;
+      const collMeta = routeData.collection?.meta ?? 1;
+      const collRate = Math.round((collReal / collMeta) * 100);
+      const dropSize = attended > 0 ? (boxesReal / attended).toFixed(1) : "0";
+      const cashRatio = collReal > 0 ? Math.round(((routeData.divisas ?? 0) / collReal) * 100) : 0;
+      const pendingCollection = Math.max(0, collMeta - collReal);
+      const pendingBoxes = Math.max(0, boxesMeta - boxesReal);
+      const unconverted = Math.max(0, visited - attended);
+
       const prompt = `
         Eres un Asesor Comercial Estratégico Senior experto en el mercado de distribución masiva y venta de licores en VENEZUELA. Tu cliente es "FV MEGAMAYORISTA", distribuidor líder de rones (ej. rones añejos DOC de Venezuela como Santa Teresa, Cacique, Pampero), cervezas (ej. cerveza Polar, Regional), licores secos o nacionales y espirituosos premium importados a licorerías tradicionales, bodegones, supermercados, minimarkets y locales de consumo.
         
-        Debes realizar un análisis comercial de alta relevancia, totalmente alineado con los datos de las tablas y gráficos proporcionados. El análisis debe estar impregnado de realismo socioeconómico venezolano actual (alta dolarización transaccional, inflación, picos de venta según la quincena laboral, escasez logística de combustible, falta absoluta de crédito bancario institucional, etc.).
+        Debes realizar un análisis comercial de alta relevancia, totalmente personalizado por ZONA y alineado con los datos operativos reales. Prohibido dar respuestas genéricas o repetitivas.
         
-        DATOS ACTUALES DE LA JORNADA/RUTA:
-        - Nombre de la Ruta: ${routeData.name}
-        - Cobertura de Clientes: Real ${routeData.clients?.real ?? 0} atendidos de una meta de ${routeData.clients?.meta ?? 0} (Clientes totales de cartera activa: ${routeData.totalClients ?? 0}, Clientes realmente visitados en esta jornada: ${routeData.visitedClients ?? 0})
-        - Volumen Vendido (Cajas): Real ${routeData.boxes?.real ?? 0} cajas de una meta planificada de ${routeData.boxes?.meta ?? 0} cajas.
-        - Cobranza Lograda ($ USD): Real $${routeData.collection?.real ?? 0} de una meta de cobranza de $${routeData.collection?.meta ?? 0}.
-        - Divisas Captadas (Efectivo USD): $${routeData.divisas ?? 0} en cash / billetes norteamericanos. (Porcentaje de liquidez en efectivo: ${routeData.collection?.real > 0 ? Math.round(((routeData.divisas ?? 0) / routeData.collection.real) * 100) : 0}%)
+        PERFIL TERRITORIAL DE LA ZONA EVALUADA:
+        - Zona Comercial Oficial: ${zoneProfile.name}
+        - Región / Estado: ${zoneProfile.region}
+        - Tipo de Mercado Comercial: ${zoneProfile.marketType}
+        - Dinámica de Negocios y Canales: ${zoneProfile.tradeDynamics}
+        - Desafío Logístico y Rutas: ${zoneProfile.logisticsChallenge}
+        - Perfil de Liquidez y Divisas: ${zoneProfile.liquidityProfile}
+        - Directivas Tácticas Clave para la Zona:
+          ${zoneProfile.tacticalDirectives.map((d: string) => `* ${d}`).join('\n          ')}
+
+        MÉTRICAS EXACTAS Y RESULTADOS ESPECÍFICOS DE LA JORNADA:
+        - Promotor / Vendedor a cargo: ${seller}
+        - Zona / Ruta: ${routeData.name}
+        - Efectividad de Cierre de Ventas: ${closingRate}% (${attended} clientes convertidos de ${visited} visitados). Clientes no convertidos en la jornada: ${unconverted}.
+        - Volumen Despachado: ${boxesRate}% (${boxesReal} cajas reales de una meta de ${boxesMeta} cajas). Brecha en cajas: ${pendingBoxes} Cjs.
+        - Drop-Size Promedio: ${dropSize} cajas/cliente atendido.
+        - Cobranza Lograda: ${collRate}% ($${collReal} USD de una meta de $${collMeta} USD). Capital Atrapado en la Calle: $${pendingCollection} USD.
+        - Liquidez en Divisas Físicas: $${routeData.divisas ?? 0} USD en billetes físicos (${cashRatio}% del recaudo). Piso mínimo administrativo obligatorio: 1% ($${Math.round(collReal * 0.01)} USD).
 
         ${previousRouteData ? `
         COMPARACIÓN CON LA ANTERIOR JORNADA TRABAJADA (-15 DÍAS):
@@ -96,10 +128,10 @@ async function startServer() {
         ESTRUCTURA DE RESPUESTA:
         Responde única y estrictamente en formato JSON con las llaves detalladas abajo. NO incluyas markdown, texto adicional explicativo ni prefijos exteriores a las llaves. Solo el JSON plano:
         {
-          "diagnostic": "Un resumen ejecutivo detallado conectando la cobertura de clientes, el volumen de cajas de licores despachadas y la cobranza de esta jornada. Señala el progreso de ventas analizando cómo maximiza su porcentaje de comisión escalonada (ganancia basada en volumen de venta, sin bonos fijos quincenales), comparado con la quincena anterior.",
-          "painPoint": "El obstáculo operativo o financiero más evidente de esta ruta lincado directamente a la fluctuación del mercado de licores en Venezuela o deficiencias en el barrido o cobro.",
-          "opportunity": "Acción estratégica e inmediata llave en mano para capturar más volumen y escalar el porcentaje de venta obtenido. Ejemplo: combos de marcas de licores de alta y baja rotación, promociones de quincena en rones premium o rutas de rescate de cuentas inactivas.",
-          "cashInsight": "Estrategia de tesorería y liquidez evaluando el efectivo captado ($ divisas físicas) contra el total de cobranza. Exige siempre el cumplimiento de la norma administrativa del 1% mínimo de efectivo para blindar la liquidez de divisas de la vertical comercial de licores de FV, sin imponer metas rígidas de divisas superiores."
+          "diagnostic": "Un resumen ejecutivo senior enfocado específicamente en ${zoneProfile.name.toUpperCase()} (${zoneProfile.region}) para ${seller}. Conecta el cierre de ventas (${closingRate}%), el drop-size de ${dropSize} cajas/cliente, el volumen y la cobranza, señalando el avance en el tramo de comisiones de venta progresivas (sin bonos fijos recurrentes).",
+          "painPoint": "El obstáculo o cuello de botella financiero/operativo más evidente en ${zoneProfile.name}, detallando el capital atrapado en la calle ($${pendingCollection} USD) o clientes no convertidos (${unconverted}), lincado a la realidad de ${zoneProfile.region}.",
+          "opportunity": "Acción táctica inmediata y específica para ${zoneProfile.name}. Directiva de cobro o combos comerciales ejecutables en licorerías y bodegones de esa zona para capturar volumen y rentabilidad.",
+          "cashInsight": "Estrategia de tesorería y liquidez evaluando el efectivo captado ($${routeData.divisas ?? 0} USD, ${cashRatio}%) frente a la norma administrativa del 1% mínimo obligatorio ($${Math.round(collReal * 0.01)} USD) y el perfil económico de ${zoneProfile.name}."
         }
       `;
 

@@ -1,3 +1,5 @@
+import { generateSeniorTerritorialAnalysis } from './territorialIntelligence';
+
 export interface GeminiAnalysis {
   diagnostic: string;
   painPoint: string;
@@ -46,18 +48,8 @@ export async function analyzeRouteData(
     if (!error.message?.includes('503')) {
       console.warn("Falling back to local analyze data due to API warning:", error.message);
     }
-    // Highly detailed fallback tailored to Venezuelan liquor sales market
-    const clientPerf = routeData.clients.meta > 0 ? (routeData.clients.real / routeData.clients.meta) * 100 : 0;
-    const boxesPerf = routeData.boxes.meta > 0 ? (routeData.boxes.real / routeData.boxes.meta) * 100 : 0;
-    const collPerf = routeData.collection.meta > 0 ? (routeData.collection.real / routeData.collection.meta) * 100 : 0;
-    const cashRatio = routeData.collection.real > 0 ? (routeData.divisas / routeData.collection.real) * 100 : 0;
-    
-    return {
-      diagnostic: `DIAGNÓSTICO REGIONAL FV (Caché local): La ruta ${routeData.name} registra cumplimiento del ${Math.round(clientPerf)}% en cobertura de clientes y ${Math.round(boxesPerf)}% en volumen físico de cajas. Se observa que la visitas quincenales requieren mayor efectividad en cierre para alinearse con los picos correspondientes a fines de semana de cobro laboral (quincenas).`,
-      painPoint: `PUNTO DE FRICCIÓN: El financiamiento propio limita las metas debido a que la cobranza está en ${Math.round(collPerf)}%. Al carecer de crédito bancario nacional, las cuentas vencidas en licorerías de barriada congelan capital de rotación necesario para reposición inmediata.`,
-      opportunity: `ESTRATEGIA RECOMENDADA: Implementa de inmediato un combo promocional que ligue rones premium DOC nacionales con marcas espirituosas de menor rotación y empaques de consumo familiar, facilitando la atracción de clientes en bodegones urbanos de alto flujo.`,
-      cashInsight: `SITUACIÓN DE LIQUIDEZ: Se captó un ${Math.round(cashRatio)}% de cobranza en divisas físicas libres de IGTF. ${cashRatio < 50 ? 'La baja proporción obliga a procesar transferencias digitales en bolívares devaluados o canjes bancarios costosos bajo tasa oficial BCV.' : 'Proporción óptima en divisas en efectivo que agiliza facturaciones contra entrega ante los grandes productores nacionales de cerveza y ron.'}`
-    };
+      // High-precision senior territorial intelligence engine
+    return generateSeniorTerritorialAnalysis(routeData, previousRouteData);
   }
 }
 

@@ -10,7 +10,7 @@ import {
 import { BrainCircuit, AlertTriangle, Lightbulb, TrendingUp, Target, Users, CheckCircle2, Banknote, Sparkles, Loader2, RefreshCw, LineChart as LucideLineChart, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateRoutePdfReport } from '../services/reportGenerator';
-import { calculateClosingRate, calculatePercentage, getCorporateSemaphoreColor, calculateSituationalAnalysis } from '../services/financialMath';
+import { calculateClosingRate, calculatePercentage, getCorporateSemaphoreColor, calculateSituationalAnalysis, getZoneProfile } from '../services/financialMath';
 
 interface KPI {
   id: string;
@@ -64,9 +64,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return wkId.replace('week-', 'Semana ').replace('-', ' / ');
   };
 
+  const currentZone = useMemo(() => getZoneProfile(route.name), [route.name]);
+
   const analysis = useMemo(() => {
-    return calculateSituationalAnalysis(route);
-  }, [route]);
+    return calculateSituationalAnalysis(route, previousRoute);
+  }, [route, previousRoute]);
 
   const displayAnalysis = aiAnalysis || analysis;
 
@@ -729,7 +731,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <h2 className="text-3xl font-black tracking-tight">Análisis de Gerencia Virtual</h2>
-                <p className="text-sm font-bold text-blue-400 uppercase tracking-[0.2em] mt-1">Feedback Estratégico Senior</p>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <p className="text-sm font-bold text-blue-400 uppercase tracking-[0.2em]">Feedback Estratégico Senior</p>
+                  <span className="text-slate-500 hidden sm:inline">•</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    📍 {currentZone.name}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
