@@ -10,7 +10,7 @@ import {
 import { BrainCircuit, AlertTriangle, Lightbulb, TrendingUp, Target, Users, CheckCircle2, Banknote, Sparkles, Loader2, RefreshCw, LineChart as LucideLineChart, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateRoutePdfReport } from '../services/reportGenerator';
-import { calculateClosingRate, calculatePercentage, getCorporateSemaphoreColor } from '../services/financialMath';
+import { calculateClosingRate, calculatePercentage, getCorporateSemaphoreColor, calculateSituationalAnalysis } from '../services/financialMath';
 
 interface KPI {
   id: string;
@@ -64,6 +64,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return wkId.replace('week-', 'Semana ').replace('-', ' / ');
   };
 
+  const analysis = useMemo(() => {
+    return calculateSituationalAnalysis(route);
+  }, [route]);
+
+  const displayAnalysis = aiAnalysis || analysis;
+
   const handleExportPDF = () => {
     setIsExporting(true);
     try {
@@ -72,10 +78,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         previousRoute,
         selectedWeek,
         hasAiAnalysis: Boolean(aiAnalysis),
+        analysis: displayAnalysis,
       });
+      const isSplit = route.name.includes(' - ');
+      const seller = isSplit ? route.name.split(' - ')[0] : 'FV MEGAMAYORISTA';
+      const cleanSeller = seller.replace(/[^a-zA-Z0-9_-]/g, '_');
       const cleanWeekId = selectedWeek ? selectedWeek.replace(/[^a-zA-Z0-9_-]/g, '_') : 'Semana';
-      const cleanRouteName = route.name.replace(/[^a-zA-Z0-9_-]/g, '_');
-      doc.save(`Reporte_FV_${cleanRouteName}_${cleanWeekId}.pdf`);
+      doc.save(`FV_Reporte_Ejecutivo_${cleanSeller}_${cleanWeekId}.pdf`);
     } catch (err) {
       console.error("Fallo al exportar reporte PDF:", err);
     } finally {
@@ -155,76 +164,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       },
     ];
   }, [route, previousRoute]);
-
-  const analysis = useMemo(() => {
-    // 1. Calculate Core KPIs
-    const clientPerf = (route.clients.real / (route.clients.meta || 1)) * 100;
-    const boxesPerf = (route.boxes.real / (route.boxes.meta || 1)) * 100;
-    const collPerf = (route.collection.real / (route.collection.meta || 1)) * 100;
-    
-    // 2. Calculate Gaps
-    const pendingCollection = route.collection.meta - route.collection.real;
-    const pendingBoxes = route.boxes.meta - route.boxes.real;
-    const pendingClients = route.clients.meta - route.clients.real;
-    const currentDropSize = route.clients.real > 0 ? (route.boxes.real / route.clients.real).toFixed(1) : "0";
-    
-    let diag = "", pain = "", opp = "";
-
-    // SCENARIO 1: "THE MIRAGE"
-    if (collPerf < 80 && boxesPerf > 80) {
-      diag = `PELIGRO FINANCIERO: Estás "regalando" mercancía. Tienes ${boxesPerf.toFixed(0)}% en ventas pero tu cobranza está congelada.`;
-      pain = `Capital Atrapado: Tienes $${new Intl.NumberFormat('en-US').format(pendingCollection)} en la calle. Esto frena la reposición del almacén.`;
-      opp = `ORDEN TÁCTICA: Detén despachos a crédito hoy mismo. Solo libera pedidos contra pago de facturas viejas. Tu prioridad es COBRAR, no vender.`;
-    } 
-    // SCENARIO 2: "LOGISTIC WASTE"
-    else if (clientPerf > 80 && boxesPerf < 70) {
-      diag = `INEFICIENCIA LOGÍSTICA: Visitas mucho, vendes poco. Tu drop-size es de solo ${currentDropSize} cajas/cliente.`;
-      pain = `Costos Operativos: El gasto de combustible y tiempo por parada está consumiendo tu margen de ganancia.`;
-      opp = `ESTRATEGIA DE MIX: No aceptes pedidos de menos de 5 cajas. Ofrece el producto de mayor rotación solo si llevan uno de baja rotación (Venta Cruzada).`;
-    }
-    // SCENARIO 3: "CONTRACTION"
-    else if (clientPerf < 70) {
-      diag = `PÉRDIDA DE TERRITORIO: Has dejado de atender a ${pendingClients} clientes meta. La competencia está llenando esos vacíos.`;
-      pain = `Riesgo Futuro: Cliente que no visitas hoy, es cliente que compra a la competencia mañana y no recuperas en meses.`;
-      opp = `OPERACIÓN RESCATE: Imprime tu lista de inactivos. Ofrece una bonificación o descuento especial solo por "Reactivación" esta semana.`;
-    }
-    // SCENARIO 4: "LOW PERFORMANCE"
-    else if (clientPerf < 70 && boxesPerf < 70 && collPerf < 70) {
-      diag = `ALARMA ROJA: Ruta colapsada en todos los indicadores. Tendencia negativa sostenida.`;
-      pain = `Viabilidad: Con estos números, la ruta no es rentable para la compañía ni para tus comisiones.`;
-      opp = `REINGENIERÍA TOTAL: Olvida la meta mensual. Enfócate en vender ${Math.ceil(pendingBoxes/6)} cajas diarias por los próximos 6 días. Divide y vencerás.`;
-    }
-    // SCENARIO 5: "STAR PERFORMER"
-    else if (clientPerf >= 90 && boxesPerf >= 90 && collPerf >= 90) {
-      diag = `EXCELENCIA OPERATIVA: Dominio total de la zona. Has superado las expectativas estándar.`;
-      pain = `Abastecimiento: El único riesgo es romper stock debido a la alta demanda generada.`;
-      opp = `EXPANSIÓN: Ya cubriste la meta. Usa el tiempo restante para introducir SKUs nuevos que el cliente nunca ha comprado (Innovación).`;
-    }
-    // DEFAULT SCENARIO
-    else {
-      diag = `DESEMPEÑO ESTABLE: Estás en el promedio de ventas quincenales, pero te faltan ${pendingBoxes} cajas para acceder a un tramo de porcentaje de comisión superior. En FV MEGAMAYORISTA no ofrecemos bonos de productividad fijos, sino que tu ganancia se rige por un porcentaje de venta específico: a mayor volumen de venta, más alto el porcentaje obtenido.`;
-      pain = `Costo de Oportunidad: Estás dejando dinero en la mesa al no ascender al siguiente nivel en la escala de comisiones por volumen de venta.`;
-      opp = `PUSH FINAL: Revisa de inmediato los 10 clientes con mayor volumen histórico quincenal y adelanta sus pedidos para ingresar a un tramo de comisión más rentable.`;
-    }
-    
-    // SCENARIO 5 SPECIAL CHECK: Update commission/comisión context as well for Star Performer
-    if (clientPerf >= 90 && boxesPerf >= 90 && collPerf >= 90) {
-      diag = `EXCELENCIA OPERATIVA: Dominio total de la zona. Has superado las expectativas estándar y maximizado el tramo más alto de tus porcentajes de comisión por venta específica.`;
-    }
-
-    // CASH INTELLIGENCE (No set goal, but strictly require 1% minimum cash ratio for vertical liquidity)
-    const cashRatio = route.collection.real > 0 ? (route.divisas / route.collection.real) * 100 : 0;
-    let cashMsg = "";
-    if (cashRatio < 1) {
-      cashMsg = "CRÍTICO DE ALTA PRIORIDAD: Recaudación de efectivo inferior al 1% mínimo requerido por norma administrativa. Es obligatorio exigir al menos un 1% mínimo de divisas físicas en cada punto de venta para garantizar la liquidez de caja de la vertical de negocios y asegurar la reposición ágil con grandes fabricantes.";
-    } else if (cashRatio < 15) {
-      cashMsg = "ALERTA DE FLUJO: Estás cumpliendo el mínimo normativo del 1%, pero la recaudación de divisas físicas sigue siendo baja. Fomenta el pago en moneda extranjera para optimizar cobros y evitar costos de devaluación cambiaria.";
-    } else {
-      cashMsg = "LIQUIDEZ OPERATIVA EN ORDEN: Excelente captación de divisas físicas por encima del límite de seguridad. Cumple con holgura la exigencia de un 1% mínimo para la liquidez de divisas de la vertical de negocios, favoreciendo la compra de inventario inmediato.";
-    }
-
-    return { diagnostic: diag, painPoint: pain, opportunity: opp, cashInsight: cashMsg };
-  }, [route]);
 
   const handleAiAnalysis = async () => {
     setIsAnalyzing(true);
@@ -350,8 +289,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       };
     });
   }, [selectedWeek, historicalData, route, show8Weeks]);
-
-  const displayAnalysis = aiAnalysis || analysis;
 
   return (
     <motion.div
