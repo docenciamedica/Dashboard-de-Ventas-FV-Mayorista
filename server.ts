@@ -9,6 +9,9 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+  // Habilitar 'trust proxy' para entornos con reverse proxy (Nginx / Cloud Run) y express-rate-limit
+  app.set('trust proxy', 1);
+
   // Body parser limit increased to support batch route lists
   app.use(express.json({ limit: '10mb' }));
 
